@@ -2,19 +2,19 @@ import pytest
 import json
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi.testclient import TestClient
-from omlx_proxy import app, load_config
-import omlx_proxy
+from llm_proxy import app, load_config
+import llm_proxy
 
 
 class TestQwenBackendIntegration:
     @pytest.fixture(autouse=True)
     def setup(self):
         """Set up ACTIVE_CONFIG with datacenter profile."""
-        omlx_proxy.ACTIVE_CONFIG = load_config("datacenter")
+        llm_proxy.ACTIVE_CONFIG = load_config("datacenter")
 
     def test_route_messages_detects_qwen_backend(self):
         """resolve_route() should return Qwen URL for haiku in datacenter profile."""
-        from omlx_proxy import resolve_route
+        from llm_proxy import resolve_route
 
         target, model = resolve_route("claude-haiku-4")
 

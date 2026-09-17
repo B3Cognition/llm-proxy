@@ -3,7 +3,7 @@ profiles:
     proxy_port: 4000
     verbose: 0  # 0=off, 1=routing, 2=full details+timing, 3=debug with headers/decisions
     backends:
-      omlx:
+      llm:
         url: "http://127.0.0.1:8000"
         api_key: "omlx-u6pawwvc56u8dybi"
         type: "anthropic"
@@ -12,7 +12,7 @@ profiles:
         type: "anthropic"
     routes:
       haiku:
-        backend: "omlx"
+        backend: "llm"
         model: "Qwen3.5-9B-MLX-4bit"
       sonnet:
         backend: "anthropic"
@@ -47,7 +47,7 @@ profiles:
     proxy_port: 4000
     verbose: 0  # 0=off, 1=routing, 2=full details+timing, 3=debug with headers/decisions
     backends:
-      omlx:
+      llm:
         url: "http://127.0.0.1:8000"
         api_key: "omlx-u6pawwvc56u8dybi"
         type: "anthropic"
@@ -60,7 +60,7 @@ profiles:
         type: "anthropic"
     routes:
       haiku:
-        backend: "omlx"
+        backend: "llm"
         model: "Qwen3.5-9B-MLX-4bit"
       sonnet:
         backend: "qwen_vl"

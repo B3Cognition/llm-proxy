@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from omlx_proxy import BackendConfig, anthropic_to_openai_request, openai_to_anthropic_response, stream_openai_to_anthropic, _filter_anthropic_internals
+from llm_proxy import BackendConfig, anthropic_to_openai_request, openai_to_anthropic_response, stream_openai_to_anthropic, _filter_anthropic_internals
 
 class TestFilterAnthropicInternals:
     def test_removes_billing_headers(self):

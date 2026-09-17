@@ -31,25 +31,25 @@ pip install -r requirements.txt  # or: uv sync
 ### Run the Proxy
 
 ```bash
-chmod +x omlx_proxy.py
-./omlx_proxy.py
+chmod +x llm_proxy.py
+./llm_proxy.py
 ```
 
 The proxy listens on `http://127.0.0.1:4000` by default.
 
 ### Configuration
 
-Select a deployment profile with the `OMLX_PROFILE` environment variable:
+Select a deployment profile with the `LLM_PROFILE` environment variable:
 
 ```bash
 # Local profile (default) - routes to local inference server
-./omlx_proxy.py
+./llm_proxy.py
 
 # Datacenter profile - routes to OpenAI-compatible service
-OMLX_PROFILE=datacenter DATACENTER_API_KEY=xxx ./omlx_proxy.py
+LLM_PROFILE=datacenter DATACENTER_API_KEY=xxx ./llm_proxy.py
 
 # Hybrid profile - mixes local and remote backends
-OMLX_PROFILE=hybrid DATACENTER_API_KEY=xxx ./omlx_proxy.py
+LLM_PROFILE=hybrid DATACENTER_API_KEY=xxx ./llm_proxy.py
 ```
 
 ### Use with Your Application
@@ -71,14 +71,14 @@ client = Anthropic(base_url='http://127.0.0.1:4000')
 The proxy works with default configuration out of the box:
 
 ```bash
-./omlx_proxy.py
+./llm_proxy.py
 ```
 
 This routes Haiku models to local oMLX (if running) and Sonnet/Opus to Anthropic.
 
 ### Configuration File
 
-Create `config.yaml` in the same directory as `omlx_proxy.py` to customize behavior:
+Create `config.yaml` in the same directory as `llm_proxy.py` to customize behavior:
 
 ```yaml
 profiles:
@@ -98,10 +98,10 @@ profiles:
 
 ### Profile Selection
 
-Select a profile with `OMLX_PROFILE` environment variable:
+Select a profile with `LLM_PROFILE` environment variable:
 
 ```bash
-OMLX_PROFILE=datacenter ./omlx_proxy.py
+LLM_PROFILE=datacenter ./llm_proxy.py
 ```
 
 ### Environment Variable Overrides
@@ -110,19 +110,19 @@ Override any configuration setting with environment variables:
 
 ```bash
 # Override proxy port
-OMLX_PROXY_PORT=5000 ./omlx_proxy.py
+LLM_PROXY_PORT=5000 ./llm_proxy.py
 
 # Override backend URL
-OMLX_BACKENDS_OMLX_URL=http://custom:9000 ./omlx_proxy.py
+LLM_BACKENDS_LLM_URL=http://custom:9000 ./llm_proxy.py
 
 # Override backend API key
-OMLX_BACKENDS_OMLX_API_KEY=secret123 ./omlx_proxy.py
+LLM_BACKENDS_LLM_API_KEY=secret123 ./llm_proxy.py
 
 # Override routing (change Haiku to use Anthropic)
-OMLX_ROUTES_HAIKU_BACKEND=anthropic ./omlx_proxy.py
+LLM_ROUTES_HAIKU_BACKEND=anthropic ./llm_proxy.py
 
 # Override model name
-OMLX_ROUTES_HAIKU_MODEL=CustomModel ./omlx_proxy.py
+LLM_ROUTES_HAIKU_MODEL=CustomModel ./llm_proxy.py
 ```
 
 ### Predefined Profiles
@@ -133,13 +133,13 @@ The `config.yaml` includes three profiles:
 - Haiku → local oMLX
 - Sonnet/Opus → Anthropic
 
-Usage: `./omlx_proxy.py` or `OMLX_PROFILE=local ./omlx_proxy.py`
+Usage: `./llm_proxy.py` or `LLM_PROFILE=local ./llm_proxy.py`
 
 #### `datacenter`
 - Haiku → Qwen3-VL 35B (OpenAI-compatible endpoint)
 - Sonnet/Opus → Anthropic
 
-Usage: `OMLX_PROFILE=datacenter ./omlx_proxy.py`
+Usage: `LLM_PROFILE=datacenter ./llm_proxy.py`
 
 Configuration: Set `DATACENTER_API_KEY` and update the backend URL in `config.yaml`:
 ```yaml
@@ -156,7 +156,7 @@ The proxy automatically translates Anthropic message format to OpenAI format.
 - Sonnet → Qwen3-VL (datacenter)
 - Opus → Anthropic
 
-Usage: `OMLX_PROFILE=hybrid ./omlx_proxy.py`
+Usage: `LLM_PROFILE=hybrid ./llm_proxy.py`
 
 Requires: Both oMLX running locally and `DATACENTER_API_KEY` set
 
@@ -259,7 +259,7 @@ For services that implement the OpenAI API format:
 
 ```bash
 export DATACENTER_API_KEY="your-api-key"
-OMLX_PROFILE=datacenter ./omlx_proxy.py
+LLM_PROFILE=datacenter ./llm_proxy.py
 ```
 
 Update `config.yaml` with your endpoint:

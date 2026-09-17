@@ -15,8 +15,8 @@ oMLX routing proxy for Claude Code
 Routes Claude model tiers to local oMLX or Anthropic API based on config.
 
 Usage:
-    chmod +x omlx_proxy.py
-    ./omlx_proxy.py
+    chmod +x llm_proxy.py
+    ./llm_proxy.py
 
 Then run Claude Code with:
     ANTHROPIC_BASE_URL='http://127.0.0.1:4000' claude
@@ -162,7 +162,7 @@ profiles:
       anthropic:
         url: https://api.anthropic.com
     routes:
-      haiku: {backend: omlx, model: null}
+      haiku: {backend: llm, model: null}
       sonnet: {backend: anthropic, model: null}
       opus: {backend: anthropic, model: null}
 """
@@ -220,21 +220,21 @@ def apply_env_overrides(config: ActiveConfig) -> ActiveConfig:
 	"""
 	Apply environment variable overrides to configuration.
 
-	Env var format: OMLX_<PATH> where path matches YAML hierarchy.
+	Env var format: LLM_<PATH> where path matches YAML hierarchy.
 	Examples:
-	  OMLX_PROFILE=datacenter
-	  OMLX_PROXY_PORT=5000
-	  OMLX_BACKENDS_OMLX_API_KEY=xyz
-	  OMLX_ROUTES_HAIKU_BACKEND=qwen_vl
-	  OMLX_ROUTES_HAIKU_MODEL=Qwen3-VL-30B
+	  LLM_PROFILE=datacenter
+	  LLM_PROXY_PORT=5000
+	  LLM_BACKENDS_LLM_API_KEY=xyz
+	  LLM_ROUTES_HAIKU_BACKEND=qwen_vl
+	  LLM_ROUTES_HAIKU_MODEL=Qwen3-VL-30B
 	"""
 	# Override proxy port
-	if "OMLX_PROXY_PORT" in os.environ:
+	if "LLM_PROXY_PORT" in os.environ:
 		try:
-			config.proxy_port = int(os.environ["OMLX_PROXY_PORT"])
+			config.proxy_port = int(os.environ["LLM_PROXY_PORT"])
 		except ValueError:
 			raise RuntimeError(
-				f"Invalid OMLX_PROXY_PORT: {os.environ['OMLX_PROXY_PORT']} "
+				f"Invalid LLM_PROXY_PORT: {os.environ['LLM_PROXY_PORT']} "
 				"(must be an integer)"
 			)
 
@@ -243,12 +243,12 @@ def apply_env_overrides(config: ActiveConfig) -> ActiveConfig:
 		backend_name_upper = backend_name.upper()
 
 		# Override URL
-		url_key = f"OMLX_BACKENDS_{backend_name_upper}_URL"
+		url_key = f"LLM_BACKENDS_{backend_name_upper}_URL"
 		if url_key in os.environ:
 			backend_config.url = os.environ[url_key]
 
 		# Override API key
-		api_key_key = f"OMLX_BACKENDS_{backend_name_upper}_API_KEY"
+		api_key_key = f"LLM_BACKENDS_{backend_name_upper}_API_KEY"
 		if api_key_key in os.environ:
 			backend_config.api_key = os.environ[api_key_key]
 
@@ -257,7 +257,7 @@ def apply_env_overrides(config: ActiveConfig) -> ActiveConfig:
 		tier_upper = tier.upper()
 
 		# Override backend
-		backend_key = f"OMLX_ROUTES_{tier_upper}_BACKEND"
+		backend_key = f"LLM_ROUTES_{tier_upper}_BACKEND"
 		if backend_key in os.environ:
 			new_backend = os.environ[backend_key]
 			if new_backend not in config.backends:
@@ -268,7 +268,7 @@ def apply_env_overrides(config: ActiveConfig) -> ActiveConfig:
 			route_config.backend = new_backend
 
 		# Override model
-		model_key = f"OMLX_ROUTES_{tier_upper}_MODEL"
+		model_key = f"LLM_ROUTES_{tier_upper}_MODEL"
 		if model_key in os.environ:
 			route_config.model = os.environ[model_key]
 
@@ -362,7 +362,7 @@ def anthropic_to_openai_request(body: dict, qwen_model: str) -> dict:
 	if not isinstance(messages, list):
 		messages = []
 
-	if system and not os.getenv("OMLX_SKIP_SYSTEM_PROMPT"):
+	if system and not os.getenv("LLM_SKIP_SYSTEM_PROMPT"):
 		# Handle both string and list formats for system
 		if isinstance(system, list):
 			# Extract text from content blocks, preserving spacing
@@ -390,8 +390,8 @@ def anthropic_to_openai_request(body: dict, qwen_model: str) -> dict:
 		# Insert system message at beginning
 		messages = [{"role": "system", "content": system_text}] + messages
 		result["messages"] = messages
-	elif os.getenv("OMLX_SKIP_SYSTEM_PROMPT"):
-		log_verbose(2, "translation", "System prompt skipped (OMLX_SKIP_SYSTEM_PROMPT=1)")
+	elif os.getenv("LLM_SKIP_SYSTEM_PROMPT"):
+		log_verbose(2, "translation", "System prompt skipped (LLM_SKIP_SYSTEM_PROMPT=1)")
 		result["messages"] = messages
 	else:
 		# Ensure messages is set even if empty
@@ -588,7 +588,7 @@ async def stream_openai_to_anthropic(openai_stream, original_model: str):
 def setup_verbosity(args, config):
 	"""
 	Set VERBOSE_LEVEL from CLI flag → env var → config file.
-	Precedence: CLI flag (highest) > OMLX_VERBOSE env var > config file > default 0
+	Precedence: CLI flag (highest) > LLM_VERBOSE env var > config file > default 0
 	"""
 	global VERBOSE_LEVEL
 
@@ -596,9 +596,9 @@ def setup_verbosity(args, config):
 	if args.verbose > 0:
 		VERBOSE_LEVEL = args.verbose
 	# 2. Check environment variable
-	elif os.getenv("OMLX_VERBOSE"):
+	elif os.getenv("LLM_VERBOSE"):
 		try:
-			VERBOSE_LEVEL = int(os.getenv("OMLX_VERBOSE"))
+			VERBOSE_LEVEL = int(os.getenv("LLM_VERBOSE"))
 		except ValueError:
 			VERBOSE_LEVEL = 0
 	# 3. Check config file
@@ -618,8 +618,8 @@ ACTIVE_CONFIG = None  # Will be set at startup
 
 # ── config ────────────────────────────────────────────────────────────────────
 PROXY_PORT    = 4000
-OMLX_URL      = "http://127.0.0.1:8000"
-OMLX_KEY      = "omlx-u6pawwvc56u8dybi"
+LLM_URL      = "http://127.0.0.1:8000"
+LLM_KEY      = "omlx-u6pawwvc56u8dybi"
 ANTHROPIC_URL = "https://api.anthropic.com"
 
 # Set to a local model name to route that tier to oMLX, or None to use Anthropic
@@ -808,8 +808,8 @@ async def route_messages(request: Request):
         if VERBOSE_LEVEL >= 3:
             log_verbose(3, "headers", "Response headers:\n  " + _format_headers(dict(resp.headers)))
     except httpx.ConnectError:
-        if target == OMLX_URL:
-            msg = f"⚠️  oMLX is not running — start it at {OMLX_URL} first"
+        if target == LLM_URL:
+            msg = f"⚠️  oMLX is not running — start it at {LLM_URL} first"
         else:
             msg = "⚠️  Cannot reach backend — check your network connection"
         print(f"  {msg}")
@@ -998,7 +998,7 @@ def routing_summary():
     lines = []
     for tier, local in [("haiku", LOCAL_HAIKU), ("sonnet", LOCAL_SONNET), ("opus", LOCAL_OPUS)]:
         if local:
-            lines.append(f"  {tier:6} → {OMLX_URL}  [{local}]")
+            lines.append(f"  {tier:6} → {LLM_URL}  [{local}]")
         else:
             lines.append(f"  {tier:6} → {ANTHROPIC_URL}")
     return "\n".join(lines)
@@ -1100,23 +1100,23 @@ def list_profiles():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="omlx_proxy.py",
+        prog="llm_proxy.py",
         description="oMLX routing proxy for Claude Code - routes model requests to local oMLX or Anthropic API",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./omlx_proxy.py                           # Start with default 'local' profile
-  OMLX_PROFILE=datacenter ./omlx_proxy.py   # Start with datacenter profile
-  ./omlx_proxy.py --list-profiles           # List available profiles
-  ./omlx_proxy.py --version                 # Show version info
+  ./llm_proxy.py                           # Start with default 'local' profile
+  LLM_PROFILE=datacenter ./llm_proxy.py   # Start with datacenter profile
+  ./llm_proxy.py --list-profiles           # List available profiles
+  ./llm_proxy.py --version                 # Show version info
 
 Environment variables:
-  OMLX_PROFILE              - Deployment profile: local, datacenter, or hybrid (default: local)
-  OMLX_PROXY_PORT           - Proxy port (default: 4000)
-  OMLX_BACKENDS_*_URL       - Override backend URL
-  OMLX_BACKENDS_*_API_KEY   - Override backend API key
-  OMLX_ROUTES_*_BACKEND     - Override route backend
-  OMLX_ROUTES_*_MODEL       - Override route model
+  LLM_PROFILE              - Deployment profile: local, datacenter, or hybrid (default: local)
+  LLM_PROXY_PORT           - Proxy port (default: 4000)
+  LLM_BACKENDS_*_URL       - Override backend URL
+  LLM_BACKENDS_*_API_KEY   - Override backend API key
+  LLM_ROUTES_*_BACKEND     - Override route backend
+  LLM_ROUTES_*_MODEL       - Override route model
   CONFIG_PATH               - Path to config.yaml file
 
 More info:
@@ -1140,14 +1140,14 @@ More info:
         "--profile",
         type=str,
         default=None,
-        help="Override OMLX_PROFILE environment variable"
+        help="Override LLM_PROFILE environment variable"
     )
 
     parser.add_argument(
         "--port",
         type=int,
         default=None,
-        help="Override OMLX_PROXY_PORT environment variable"
+        help="Override LLM_PROXY_PORT environment variable"
     )
 
     parser.add_argument(
@@ -1169,7 +1169,7 @@ More info:
         sys.exit(0)
 
     # Get profile from args or env or use default
-    profile = args.profile or os.getenv("OMLX_PROFILE", "local")
+    profile = args.profile or os.getenv("LLM_PROFILE", "local")
 
     # Load and validate configuration
     try:

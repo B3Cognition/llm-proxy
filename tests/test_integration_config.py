@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from omlx_proxy import load_config, resolve_route, ACTIVE_CONFIG, app
+from llm_proxy import load_config, resolve_route, ACTIVE_CONFIG, app
 from fastapi.testclient import TestClient
 
 
@@ -14,8 +14,8 @@ class TestIntegrationConfigRouting:
     def setup(self):
         """Set ACTIVE_CONFIG for tests."""
         global ACTIVE_CONFIG
-        import omlx_proxy
-        omlx_proxy.ACTIVE_CONFIG = load_config("local")
+        import llm_proxy
+        llm_proxy.ACTIVE_CONFIG = load_config("local")
 
     def test_resolve_route_haiku_local(self):
         """Haiku routes to configured local backend."""
@@ -48,16 +48,16 @@ class TestIntegrationConfigRouting:
     def test_profile_switch_changes_routing(self):
         """Switching profile changes routing behavior."""
         global ACTIVE_CONFIG
-        import omlx_proxy
+        import llm_proxy
 
         # Load local profile
         local_config = load_config("local")
-        omlx_proxy.ACTIVE_CONFIG = local_config
+        llm_proxy.ACTIVE_CONFIG = local_config
         target_local, model_local = resolve_route("claude-haiku-4")
 
         # Load datacenter profile (use defaults since no datacenter-specific setup)
         # This test just verifies profile selection works
-        assert local_config.routes["haiku"].backend == "omlx"
+        assert local_config.routes["haiku"].backend == "llm"
 
 
 class TestBackwardCompatibility:
@@ -65,17 +65,17 @@ class TestBackwardCompatibility:
         """Config loads with defaults when file missing."""
         config = load_config("local")
         assert config.proxy_port == 4000
-        assert "omlx" in config.backends
+        assert "llm" in config.backends
         assert "anthropic" in config.backends
 
     def test_env_var_overrides_still_work(self):
-        """Legacy env var overrides (OMLX_KEY, OMLX_URL) work."""
-        os.environ["OMLX_BACKENDS_OMLX_API_KEY"] = "legacy_key"
-        os.environ["OMLX_BACKENDS_OMLX_URL"] = "http://legacy:9000"
+        """Legacy env var overrides (LLM_KEY, LLM_URL) work."""
+        os.environ["LLM_BACKENDS_LLM_API_KEY"] = "legacy_key"
+        os.environ["LLM_BACKENDS_LLM_URL"] = "http://legacy:9000"
         try:
             config = load_config("local")
-            assert config.backends["omlx"].api_key == "legacy_key"
-            assert config.backends["omlx"].url == "http://legacy:9000"
+            assert config.backends["llm"].api_key == "legacy_key"
+            assert config.backends["llm"].url == "http://legacy:9000"
         finally:
-            del os.environ["OMLX_BACKENDS_OMLX_API_KEY"]
-            del os.environ["OMLX_BACKENDS_OMLX_URL"]
+            del os.environ["LLM_BACKENDS_LLM_API_KEY"]
+            del os.environ["LLM_BACKENDS_LLM_URL"]

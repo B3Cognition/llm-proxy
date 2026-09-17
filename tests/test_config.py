@@ -5,10 +5,10 @@ import yaml
 import os
 import tempfile
 
-# Add parent directory to path so we can import omlx_proxy
+# Add parent directory to path so we can import llm_proxy
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from omlx_proxy import (
+from llm_proxy import (
     BackendConfig, RouteConfig, ProfileConfig, ProxyConfig
 )
 
@@ -34,8 +34,8 @@ class TestBackendConfig:
 class TestRouteConfig:
     def test_valid_route(self):
         """RouteConfig with backend is valid."""
-        route = RouteConfig(backend="omlx", model="Qwen3.5-9B")
-        assert route.backend == "omlx"
+        route = RouteConfig(backend="llm", model="Qwen3.5-9B")
+        assert route.backend == "llm"
         assert route.model == "Qwen3.5-9B"
 
     def test_route_backend_required(self):
@@ -54,40 +54,40 @@ class TestProfileConfig:
         """ProfileConfig with backends and routes is valid."""
         profile = ProfileConfig(
             proxy_port=4000,
-            backends={"omlx": BackendConfig(url="http://localhost:8000")},
-            routes={"haiku": RouteConfig(backend="omlx", model="Qwen")}
+            backends={"llm": BackendConfig(url="http://localhost:8000")},
+            routes={"haiku": RouteConfig(backend="llm", model="Qwen")}
         )
         assert profile.proxy_port == 4000
-        assert "omlx" in profile.backends
+        assert "llm" in profile.backends
         assert "haiku" in profile.routes
 
     def test_profile_backends_required(self):
         """ProfileConfig requires backends."""
         with pytest.raises(ValueError):
             ProfileConfig(
-                routes={"haiku": RouteConfig(backend="omlx")}
+                routes={"haiku": RouteConfig(backend="llm")}
             )
 
     def test_profile_routes_required(self):
         """ProfileConfig requires routes."""
         with pytest.raises(ValueError):
             ProfileConfig(
-                backends={"omlx": BackendConfig(url="http://localhost:8000")}
+                backends={"llm": BackendConfig(url="http://localhost:8000")}
             )
 
     def test_profile_route_invalid_backend_reference(self):
         """Route must reference existing backend."""
         with pytest.raises(ValueError, match="references backend 'nonexistent'"):
             ProfileConfig(
-                backends={"omlx": BackendConfig(url="http://localhost:8000")},
+                backends={"llm": BackendConfig(url="http://localhost:8000")},
                 routes={"haiku": RouteConfig(backend="nonexistent")}
             )
 
     def test_profile_default_proxy_port(self):
         """ProfileConfig defaults proxy_port to 4000."""
         profile = ProfileConfig(
-            backends={"omlx": BackendConfig(url="http://localhost:8000")},
-            routes={"haiku": RouteConfig(backend="omlx")}
+            backends={"llm": BackendConfig(url="http://localhost:8000")},
+            routes={"haiku": RouteConfig(backend="llm")}
         )
         assert profile.proxy_port == 4000
 
@@ -98,8 +98,8 @@ class TestProxyConfig:
         config = ProxyConfig(
             profiles={
                 "local": ProfileConfig(
-                    backends={"omlx": BackendConfig(url="http://localhost:8000")},
-                    routes={"haiku": RouteConfig(backend="omlx")}
+                    backends={"llm": BackendConfig(url="http://localhost:8000")},
+                    routes={"haiku": RouteConfig(backend="llm")}
                 )
             }
         )
@@ -120,23 +120,23 @@ class TestConfigLoading:
             with tempfile.TemporaryDirectory() as tmpdir:
                 os.chdir(tmpdir)
                 # Don't create config.yaml, should use defaults
-                from omlx_proxy import load_config
+                from llm_proxy import load_config
                 config = load_config("local")
                 assert config.proxy_port == 4000
-                assert "omlx" in config.backends
+                assert "llm" in config.backends
                 assert "haiku" in config.routes
         finally:
             os.chdir(old_cwd)
 
     def test_load_config_invalid_profile(self):
         """load_config raises error for non-existent profile."""
-        from omlx_proxy import load_config
+        from llm_proxy import load_config
         with pytest.raises(RuntimeError, match="Profile 'nonexistent' not found"):
             load_config("nonexistent")
 
     def test_load_config_selects_correct_profile(self):
         """load_config selects the requested profile."""
-        from omlx_proxy import load_config
+        from llm_proxy import load_config
         # Default config has only 'local' profile, so this tests the default
         config = load_config("local")
         assert config.proxy_port == 4000
@@ -144,61 +144,61 @@ class TestConfigLoading:
 
 class TestEnvOverrides:
     def test_override_proxy_port(self):
-        """OMLX_PROXY_PORT env var overrides config."""
-        os.environ["OMLX_PROXY_PORT"] = "5000"
+        """LLM_PROXY_PORT env var overrides config."""
+        os.environ["LLM_PROXY_PORT"] = "5000"
         try:
-            from omlx_proxy import load_config
+            from llm_proxy import load_config
             config = load_config("local")
             assert config.proxy_port == 5000
         finally:
-            del os.environ["OMLX_PROXY_PORT"]
+            del os.environ["LLM_PROXY_PORT"]
 
     def test_override_backend_url(self):
-        """OMLX_BACKENDS_<NAME>_URL env var overrides config."""
-        os.environ["OMLX_BACKENDS_OMLX_URL"] = "http://custom:9000"
+        """LLM_BACKENDS_<NAME>_URL env var overrides config."""
+        os.environ["LLM_BACKENDS_LLM_URL"] = "http://custom:9000"
         try:
-            from omlx_proxy import load_config
+            from llm_proxy import load_config
             config = load_config("local")
-            assert config.backends["omlx"].url == "http://custom:9000"
+            assert config.backends["llm"].url == "http://custom:9000"
         finally:
-            del os.environ["OMLX_BACKENDS_OMLX_URL"]
+            del os.environ["LLM_BACKENDS_LLM_URL"]
 
     def test_override_backend_api_key(self):
-        """OMLX_BACKENDS_<NAME>_API_KEY env var overrides config."""
-        os.environ["OMLX_BACKENDS_OMLX_API_KEY"] = "secret123"
+        """LLM_BACKENDS_<NAME>_API_KEY env var overrides config."""
+        os.environ["LLM_BACKENDS_LLM_API_KEY"] = "secret123"
         try:
-            from omlx_proxy import load_config
+            from llm_proxy import load_config
             config = load_config("local")
-            assert config.backends["omlx"].api_key == "secret123"
+            assert config.backends["llm"].api_key == "secret123"
         finally:
-            del os.environ["OMLX_BACKENDS_OMLX_API_KEY"]
+            del os.environ["LLM_BACKENDS_LLM_API_KEY"]
 
     def test_override_route_backend(self):
-        """OMLX_ROUTES_<TIER>_BACKEND env var overrides config."""
-        os.environ["OMLX_ROUTES_HAIKU_BACKEND"] = "anthropic"
+        """LLM_ROUTES_<TIER>_BACKEND env var overrides config."""
+        os.environ["LLM_ROUTES_HAIKU_BACKEND"] = "anthropic"
         try:
-            from omlx_proxy import load_config
+            from llm_proxy import load_config
             config = load_config("local")
             assert config.routes["haiku"].backend == "anthropic"
         finally:
-            del os.environ["OMLX_ROUTES_HAIKU_BACKEND"]
+            del os.environ["LLM_ROUTES_HAIKU_BACKEND"]
 
     def test_override_route_model(self):
-        """OMLX_ROUTES_<TIER>_MODEL env var overrides config."""
-        os.environ["OMLX_ROUTES_HAIKU_MODEL"] = "CustomModel"
+        """LLM_ROUTES_<TIER>_MODEL env var overrides config."""
+        os.environ["LLM_ROUTES_HAIKU_MODEL"] = "CustomModel"
         try:
-            from omlx_proxy import load_config
+            from llm_proxy import load_config
             config = load_config("local")
             assert config.routes["haiku"].model == "CustomModel"
         finally:
-            del os.environ["OMLX_ROUTES_HAIKU_MODEL"]
+            del os.environ["LLM_ROUTES_HAIKU_MODEL"]
 
     def test_override_invalid_backend_reference(self):
         """Overriding route to non-existent backend raises error."""
-        os.environ["OMLX_ROUTES_HAIKU_BACKEND"] = "nonexistent"
+        os.environ["LLM_ROUTES_HAIKU_BACKEND"] = "nonexistent"
         try:
-            from omlx_proxy import load_config
+            from llm_proxy import load_config
             with pytest.raises(RuntimeError, match="unknown backend"):
                 load_config("local")
         finally:
-            del os.environ["OMLX_ROUTES_HAIKU_BACKEND"]
+            del os.environ["LLM_ROUTES_HAIKU_BACKEND"]
