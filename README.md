@@ -1,15 +1,32 @@
-# OMLX Local Proxy for Claude Code
+# LLM Proxy
 
-A lightweight local proxy that intelligently routes Claude Code's model requests:
-- **Haiku** models → local oMLX inference server
-- **Sonnet & Opus** models → Anthropic's API (transparent passthrough)
+A lightweight, production-ready proxy for routing LLM requests across multiple backends with automatic message translation between Anthropic and OpenAI-compatible APIs.
+
+**Use case**: You have an Anthropic Claude client, but want to route requests to local models, alternative APIs, or different services based on model tier or load.
+
+## Features
+
+- **Multi-backend routing** — Route different model tiers to different backends (local inference, OpenAI-compatible services, Anthropic API)
+- **Message translation** — Automatically translates between Anthropic Claude and OpenAI API formats
+- **Configurable profiles** — Support multiple deployment profiles (local, datacenter, hybrid)
+- **Verbose logging** — 3-level debugging to inspect routing decisions and message translation
+- **Streaming support** — Full support for streaming responses from any backend
+- **System prompt filtering** — Intelligently filters Anthropic-specific instructions when routing to other backends
+- **Startup validation** — Automatic connectivity checks and service verification
 
 ## Quick Start
 
 ### Prerequisites
 - Python 3.11+
-- [uv](https://github.com/astral-sh/uv) (for script execution)
-- Local oMLX inference server running on `http://127.0.0.1:8000`
+- An LLM client or application that supports custom API endpoints
+
+### Installation
+
+```bash
+git clone https://github.com/B3Cognition/llm-proxy.git
+cd llm-proxy
+pip install -r requirements.txt  # or: uv sync
+```
 
 ### Run the Proxy
 
@@ -18,14 +35,33 @@ chmod +x omlx_proxy.py
 ./omlx_proxy.py
 ```
 
-The proxy listens on `http://127.0.0.1:4000` by default (change with `OMLX_PROXY_PORT` env var).
+The proxy listens on `http://127.0.0.1:4000` by default.
 
-Select a profile: `OMLX_PROFILE=datacenter ./omlx_proxy.py`
+### Configuration
 
-### Use with Claude Code
+Select a deployment profile with the `OMLX_PROFILE` environment variable:
 
 ```bash
-ANTHROPIC_BASE_URL='http://127.0.0.1:4000' claude
+# Local profile (default) - routes to local inference server
+./omlx_proxy.py
+
+# Datacenter profile - routes to OpenAI-compatible service
+OMLX_PROFILE=datacenter DATACENTER_API_KEY=xxx ./omlx_proxy.py
+
+# Hybrid profile - mixes local and remote backends
+OMLX_PROFILE=hybrid DATACENTER_API_KEY=xxx ./omlx_proxy.py
+```
+
+### Use with Your Application
+
+Point your Anthropic API client to the proxy:
+
+```bash
+# Python
+export ANTHROPIC_BASE_URL='http://127.0.0.1:4000'
+
+# Or pass when initializing client
+client = Anthropic(base_url='http://127.0.0.1:4000')
 ```
 
 ## Configuration
@@ -100,12 +136,20 @@ The `config.yaml` includes three profiles:
 Usage: `./omlx_proxy.py` or `OMLX_PROFILE=local ./omlx_proxy.py`
 
 #### `datacenter`
-- Haiku → Qwen3-VL (datacenter)
+- Haiku → Qwen3-VL 35B (OpenAI-compatible endpoint)
 - Sonnet/Opus → Anthropic
 
 Usage: `OMLX_PROFILE=datacenter ./omlx_proxy.py`
 
-Requires: `DATACENTER_API_KEY` environment variable
+Configuration: Set `DATACENTER_API_KEY` and update the backend URL in `config.yaml`:
+```yaml
+backends:
+  qwen_vl:
+    url: "https://vllm-service.example.com"  # Your OpenAI-compatible endpoint
+    api_key: "${DATACENTER_API_KEY}"
+```
+
+The proxy automatically translates Anthropic message format to OpenAI format.
 
 #### `hybrid`
 - Haiku → local oMLX
@@ -190,58 +234,92 @@ oMLX routing proxy  (port 4000)
 - **Passthrough headers** — transparently forwards headers while filtering unnecessary ones
 - **Model translation** — remaps model names when routing to local backends
 
-## Using with omlx.ai
+## Deployment Examples
 
-### Installation
+### Local Inference Server
 
-1. Download the omlx.ai desktop app from [omlx.ai](https://omlx.ai) (RC1 or later recommended)
-2. Launch the application (available as desktop app or web app)
+If running a local inference server (like vLLM, Ollama, or similar):
 
-### Model Selection
+```yaml
+profiles:
+  local:
+    backends:
+      local_llm:
+        url: "http://127.0.0.1:8000"
+        type: "openai"
+    routes:
+      haiku:
+        backend: local_llm
+        model: "qwen-35b"
+```
 
-Recommended models (tested and working):
-- **Haiku tier**: `qwen35-9b-4bit` — fast, efficient for agentic work
-- **Sonnet/Opus tier**: `qwen3.6-35B` — good balance of capability and speed
-- **Alternative**: `devstral` (early results promising, needs further testing)
+### Remote OpenAI-Compatible API
 
-⚠️ **Note**: Gemma models require chat setup configuration (fixable but requires additional work)
+For services that implement the OpenAI API format:
 
-### Configuration Steps
+```bash
+export DATACENTER_API_KEY="your-api-key"
+OMLX_PROFILE=datacenter ./omlx_proxy.py
+```
 
-1. **Set API Key in omlx.ai**
-   - Open omlx.ai settings
-   - Configure and save your API key
+Update `config.yaml` with your endpoint:
+```yaml
+backends:
+  qwen_vl:
+    url: "https://your-endpoint.example.com"
+    api_key: "${DATACENTER_API_KEY}"
+    type: "openai"
+```
 
-2. **Configure Context Windows**
-   - Set all context windows to **131k** (recommended for agentic work):
-     - Claude context size
-     - Generation fallback context window
-     - Max tokens
+### Hybrid Setup
 
-3. **Update proxy configuration**
-   - Edit `omlx_proxy.py` with your omlx.ai credentials and desired routing:
-     ```python
-     OMLX_URL = "http://127.0.0.1:8000"           # or your omlx.ai endpoint
-     OMLX_KEY = "your-api-key-here"
-     
-     # Configure per-tier routing (set to None to use Anthropic)
-     LOCAL_HAIKU  = "Qwen3.5-9B-MLX-4bit"         # Local model for Haiku
-     LOCAL_SONNET = "Devstral-Small-2505-4bit"   # Local model for Sonnet (or None)
-     LOCAL_OPUS   = None                           # Use Anthropic for Opus
-     ```
+Mix local and remote backends:
+- Fast requests → Local inference
+- Complex reasoning → Remote service
+- Fallback → Anthropic Claude API
 
-4. **Start the proxy**
-   ```bash
-   ./omlx_proxy.py
-   ```
+Configure in the `hybrid` profile in `config.yaml`.
 
-5. **Use with Claude Code**
-   ```bash
-   ANTHROPIC_BASE_URL='http://127.0.0.1:4000' claude
-   ```
+## Message Translation
 
-### Known Limitations
+The proxy automatically handles format conversion:
 
-- Desktop and web apps may not always be in sync (project is in active development)
-- Some models may require additional setup (e.g., gemma needs chat configuration)
-- Tested with omlx.ai RC1; newer versions may have improvements
+**Anthropic → OpenAI**: 
+- Converts system parameter from content blocks to string
+- Translates tool use format
+- Filters Anthropic-specific metadata
+
+**OpenAI → Anthropic**:
+- Maps completion tokens → output tokens
+- Converts finish reason to stop reason
+- Wraps response in Anthropic message format
+
+See verbose logging (Level 2+) to inspect translations.
+
+## Testing
+
+Run the test suite:
+
+```bash
+python -m pytest
+```
+
+Test coverage includes:
+- Configuration loading and validation
+- Request routing and backend selection
+- Message translation (Anthropic ↔ OpenAI)
+- Streaming responses
+- Verbose logging at all levels
+- System prompt filtering
+
+## Contributing
+
+Contributions welcome! Areas of interest:
+- Additional backend formats
+- Performance optimizations
+- Documentation improvements
+- Bug reports and fixes
+
+## License
+
+MIT License - see LICENSE file for details
