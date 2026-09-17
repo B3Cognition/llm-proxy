@@ -1,0 +1,70 @@
+profiles:
+  local:
+    proxy_port: 4000
+    verbose: 0  # 0=off, 1=routing, 2=full details+timing, 3=debug with headers/decisions
+    backends:
+      omlx:
+        url: "http://127.0.0.1:8000"
+        api_key: "omlx-u6pawwvc56u8dybi"
+        type: "anthropic"
+      anthropic:
+        url: "https://api.anthropic.com"
+        type: "anthropic"
+    routes:
+      haiku:
+        backend: "omlx"
+        model: "Qwen3.5-9B-MLX-4bit"
+      sonnet:
+        backend: "anthropic"
+        model: null
+      opus:
+        backend: "anthropic"
+        model: null
+
+  datacenter:
+    proxy_port: 4000
+    verbose: 0  # 0=off, 1=routing, 2=full details+timing, 3=debug with headers/decisions
+    backends:
+      qwen_vl:
+        url: "https://vllm-service.example.com"
+        api_key: "${DATACENTER_API_KEY}"
+        type: "openai"
+      anthropic:
+        url: "https://api.anthropic.com"
+        type: "anthropic"
+    routes:
+      haiku:
+        backend: "qwen_vl"
+        model: "Qwen/Qwen3.6-35B-A3B"
+      sonnet:
+        backend: "anthropic"
+        model: null
+      opus:
+        backend: "anthropic"
+        model: null
+
+  hybrid:
+    proxy_port: 4000
+    verbose: 0  # 0=off, 1=routing, 2=full details+timing, 3=debug with headers/decisions
+    backends:
+      omlx:
+        url: "http://127.0.0.1:8000"
+        api_key: "omlx-u6pawwvc56u8dybi"
+        type: "anthropic"
+      qwen_vl:
+        url: "https://vllm-service.example.com"
+        api_key: "${DATACENTER_API_KEY}"
+        type: "openai"
+      anthropic:
+        url: "https://api.anthropic.com"
+        type: "anthropic"
+    routes:
+      haiku:
+        backend: "omlx"
+        model: "Qwen3.5-9B-MLX-4bit"
+      sonnet:
+        backend: "qwen_vl"
+        model: "Qwen/Qwen3.6-35B-A3B"
+      opus:
+        backend: "anthropic"
+        model: null

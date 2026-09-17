@@ -1,0 +1,42 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "**/*"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "PEP-2279 [npm]"
+  - package-ecosystem: "nuget"
+    directories:
+      - "/"
+      - "**/*"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "PEP-2279 [nuget]"
+  - package-ecosystem: "pip"
+    directories:
+      - "/"
+      - "**/*"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "PEP-2279 [pip]"
+  - package-ecosystem: "maven"
+    directories:
+      - "/"
+      - "**/*"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "PEP-2279 [maven]"
+  - package-ecosystem: "composer"
+    directories:
+      - "/"
+      - "**/*"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "PEP-2279 [composer]"
