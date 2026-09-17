@@ -25,8 +25,9 @@ A lightweight, production-ready proxy for routing LLM requests across multiple b
 ```bash
 git clone https://github.com/B3Cognition/llm-proxy.git
 cd llm-proxy
-pip install -r requirements.txt  # or: uv sync
 ```
+
+**Note:** Dependencies auto-install via `uv` when you run the script. No need for `pip install`!
 
 ### Run the Proxy
 
@@ -36,6 +37,8 @@ chmod +x llm_proxy.py
 ```
 
 The proxy listens on `http://127.0.0.1:4000` by default.
+
+> **First run:** The script uses [uv](https://github.com/astral-sh/uv) to automatically install dependencies. If you don't have `uv` installed, install it first: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ### Configuration
 

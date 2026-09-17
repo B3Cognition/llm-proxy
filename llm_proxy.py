@@ -11,15 +11,15 @@
 # ///
 
 """
-oMLX routing proxy for Claude Code
-Routes Claude model tiers to local oMLX or Anthropic API based on config.
+LLM Proxy - Route requests across multiple LLM backends
+Automatically translates between Anthropic Claude and OpenAI-compatible APIs.
 
 Usage:
     chmod +x llm_proxy.py
     ./llm_proxy.py
 
-Then run Claude Code with:
-    ANTHROPIC_BASE_URL='http://127.0.0.1:4000' claude
+Then configure your client with:
+    ANTHROPIC_BASE_URL='http://127.0.0.1:4000'
 """
 
 import json
@@ -28,7 +28,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Optional
 import yaml
 import os
@@ -83,25 +83,25 @@ def _format_headers(headers: dict) -> str:
 
 class BackendConfig(BaseModel):
 	"""Backend service configuration."""
+	model_config = ConfigDict(extra="forbid")
+
 	url: str
 	api_key: Optional[str] = None
 	type: str = "anthropic"  # "anthropic" or "openai"
 
-	class Config:
-		extra = "forbid"
-
 
 class RouteConfig(BaseModel):
 	"""Route configuration for a model tier."""
+	model_config = ConfigDict(extra="forbid")
+
 	backend: str  # must reference a backend name
 	model: Optional[str] = None
-
-	class Config:
-		extra = "forbid"
 
 
 class ProfileConfig(BaseModel):
 	"""A deployment profile configuration."""
+	model_config = ConfigDict(extra="forbid")
+
 	proxy_port: int = 4000
 	verbose: Optional[int] = None  # 0=off, 1/2/3=verbosity level
 	backends: dict[str, BackendConfig]
@@ -120,12 +120,11 @@ class ProfileConfig(BaseModel):
 				)
 		return routes
 
-	class Config:
-		extra = "forbid"
-
 
 class ProxyConfig(BaseModel):
 	"""Complete proxy configuration with profiles."""
+	model_config = ConfigDict(extra="forbid")
+
 	profiles: dict[str, ProfileConfig]
 
 	@field_validator("profiles")
@@ -135,9 +134,6 @@ class ProxyConfig(BaseModel):
 		if not profiles:
 			raise ValueError("At least one profile must be defined")
 		return profiles
-
-	class Config:
-		extra = "forbid"
 
 
 class ActiveConfig:
