@@ -615,10 +615,10 @@ ACTIVE_CONFIG = None  # Will be set at startup
 # ── config ────────────────────────────────────────────────────────────────────
 PROXY_PORT    = 4000
 LLM_URL      = "http://127.0.0.1:8000"
-LLM_KEY      = "omlx-u6pawwvc56u8dybi"
+LLM_KEY      = "default-api-key"
 ANTHROPIC_URL = "https://api.anthropic.com"
 
-# Set to a local model name to route that tier to oMLX, or None to use Anthropic
+# Set to a local model name to route that tier to local backend, or None to use Anthropic
 LOCAL_HAIKU  = "Qwen3.5-9B-MLX-4bit"
 LOCAL_SONNET = None                       # e.g. "Devstral-Small-2505-4bit"
 LOCAL_OPUS   = None                       # e.g. "Qwen3.6-35B-A3B-4bit"
@@ -805,7 +805,7 @@ async def route_messages(request: Request):
             log_verbose(3, "headers", "Response headers:\n  " + _format_headers(dict(resp.headers)))
     except httpx.ConnectError:
         if target == LLM_URL:
-            msg = f"⚠️  oMLX is not running — start it at {LLM_URL} first"
+            msg = f"⚠️  Local LLM backend not reachable at {LLM_URL}"
         else:
             msg = "⚠️  Cannot reach backend — check your network connection"
         print(f"  {msg}")
@@ -1097,7 +1097,7 @@ def list_profiles():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="llm_proxy.py",
-        description="oMLX routing proxy for Claude Code - routes model requests to local oMLX or Anthropic API",
+        description="LLM routing proxy - routes requests across multiple backends with Anthropic↔OpenAI translation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1116,7 +1116,7 @@ Environment variables:
   CONFIG_PATH               - Path to config.yaml file
 
 More info:
-  https://github.com/statsperform/lab-omlx-proxy
+  https://github.com/B3Cognition/llm-proxy
         """
     )
 
@@ -1182,7 +1182,7 @@ More info:
         ACTIVE_CONFIG.proxy_port = args.port
 
     # Log startup info
-    print(f"\noMLX routing proxy  (port {ACTIVE_CONFIG.proxy_port})")
+    print(f"\nLLM routing proxy  (port {ACTIVE_CONFIG.proxy_port})")
     print(f"Profile: {profile}")
     for tier in ["haiku", "sonnet", "opus"]:
         route = ACTIVE_CONFIG.routes[tier]
